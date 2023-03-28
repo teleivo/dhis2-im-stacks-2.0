@@ -11,7 +11,7 @@
     },
     {
       "name": "LIVENESS_PROBE_TIMEOUT_SECONDS",
-      "value": "1"
+      "value": "$LIVENESS_PROBE_TIMEOUT_SECONDS"
     },
     {
       "name": "READINESS_PROBE_TIMEOUT_SECONDS",
