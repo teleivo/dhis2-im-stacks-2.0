@@ -6,7 +6,6 @@ package stacks
 
 // TODO is it ok to treat values as strings? using types might be nice
 
-
 // TODO kubernetes image pull policy should be a valid one. can I use kubernetes to constrain that?
 
 #parameter: {

@@ -24,3 +24,15 @@ optionalParameters.0.name: conflicting values "IMAGE_REPOSITORY" and "IMAGE_TAG"
     ./stacks.cue:50:1
 ```
 
+## Parameters as Map
+
+An example of how merging data with schema works no matter where values come from.
+
+Some of our parameters come from an encrypted yaml file.
+"optional" and "required" parameters come from the user as JSON.
+"system" parameters are set by us in our helmfile.go.
+
+```sh
+cue export dhis2-partial.yaml dhis2-partial.json stacks.cue
+```
+
