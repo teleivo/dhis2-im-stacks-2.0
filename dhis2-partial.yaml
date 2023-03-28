@@ -1,4 +1,4 @@
-optionalParameters:
-  - name: IMAGE_TAG
+parameters:
+  IMAGE_TAG:
     value: "2.39.1.1"
 

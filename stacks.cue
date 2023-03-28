@@ -10,50 +10,38 @@ package stacks
 // TODO kubernetes image pull policy should be a valid one. can I use kubernetes to constrain that?
 
 #parameter: {
-  name: string
   value: string
 }
 
 #stack: {
     stackName: string
-    requiredParameters: [...#parameter]
-    optionalParameters?: [...#parameter]
+    parameters: [string]: #parameter
 }
 
 #dhis2: #stack & {
     stackName: "dhis2"
-    requiredParameters: [...#parameter] & [
-        {
-            name: "DATABASE_ID"
-        },
-    ]
-    optionalParameters?: [...#parameter] & [
-       // {
-       //     name: "GOOGLE_AUTH_PROJECT_ID"
-       // },
-        {
-            name: "IMAGE_REPOSITORY",
+    parameters: {
+       "DATABASE_ID": {}
+       "IMAGE_REPOSITORY"?: {
             value: string | *"core"
-        },
-        {
-            name: "IMAGE_TAG",
+       }
+       "IMAGE_TAG"?: {
             value: string | *"2.39.0"
-        },
-        {
-            name: "IMAGE_PULL_POLICY",
+       }
+       "IMAGE_PULL_POLICY"?: {
             value: string | *"IfNotPresent" | "Always" | "Never"
-        },
-    ]
+       }
+       "GOOGLE_AUTH_PROJECT_ID"?: {}
+    }
 }
 
 // instance of dhis2
 #dhis2 & {
-    requiredParameters: [
-        {
-            name: "DATABASE_ID"
-            value: "1"
-        },
-    ]
+    parameters: {
+     "DATABASE_ID": {
+        value: "1"
+     }
+    }
 }
 
 // invalid instance of dhis2
