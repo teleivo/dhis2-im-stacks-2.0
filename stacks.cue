@@ -28,11 +28,14 @@ package stacks
             value: string | *"2.39.0"
        }
        "IMAGE_PULL_POLICY"?: {
-            value: string | *"IfNotPresent" | "Always" | "Never"
+            value: *"IfNotPresent" | "Always" | "Never"
        }
        "GOOGLE_AUTH_PROJECT_ID"?: {}
     }
 }
+
+
+// These are examples of values that will be merged with the above definition
 
 // instance of dhis2
 #dhis2 & {
