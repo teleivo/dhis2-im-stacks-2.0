@@ -140,6 +140,9 @@ var WhoamiGo = Stack{
 	},
 }
 
+// TODO are we using stack im-job-runner
+// https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/im-job-runner/helmfile.yaml
+
 // Provides the PostgreSQL hostname as previously done by the hostname pattern.
 // Leveraging code as data and the Provider interface we can create reusable providers using any
 // data an instance or its stack has. A Provider could in theory also reach out over the network to
