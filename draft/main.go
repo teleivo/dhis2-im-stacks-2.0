@@ -15,7 +15,7 @@ func main() {
 }
 
 func run() error {
-	err := deploy()
+	err := deployDHIS2Core()
 	if err != nil {
 		return fmt.Errorf("failed deploying dhis2-core: %v", err)
 	}
@@ -46,9 +46,9 @@ func run() error {
 	return nil
 }
 
-// deploy is a sketch of how it could look like when deploying dhis2-core linked to dhis2-db
+// deployDHIS2Core is a sketch of how it could look like when deploying dhis2-core linked to dhis2-db
 // it shows consumed parameters and multiple variables/patterns previously only hostname pattern.
-func deploy() error {
+func deployDHIS2Core() error {
 	// right now users provide the linked instance from which to consume
 	// so imagine a user deploying an instance of dhis2-core linking to dhis2DBInstance
 	source := stack.Instance{
