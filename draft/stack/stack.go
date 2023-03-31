@@ -6,6 +6,8 @@ package stack
 import (
 	"errors"
 	"fmt"
+
+	"github.com/dominikbraun/graph"
 )
 
 type Stacks map[string]Stack
@@ -51,6 +53,11 @@ type Instance struct {
 // New creates stacks ensuring consumed parameters are provided by required stacks.
 func New(stacks ...Stack) (Stacks, error) {
 	err := validateConsumedParams(stacks)
+	if err != nil {
+		return nil, err
+	}
+
+	err = validateNoCycles(stacks)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +109,27 @@ func validateConsumedParams(stacks []Stack) error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// TODO test
+func validateNoCycles(stacks []Stack) error {
+	g := graph.New(graph.StringHash, graph.Directed(), graph.PreventCycles())
+	for _, s := range stacks {
+		err := g.AddVertex(s.Name)
+		if err != nil {
+			return fmt.Errorf("failed adding vertex %q: %v", s.Name, err)
+		}
+	}
+	for _, src := range stacks {
+		for _, dest := range src.Requires {
+			err := g.AddEdge(dest.Name, src.Name)
+			if err != nil {
+				return fmt.Errorf("failed adding edge %q -> %q: %v", dest.Name, src.Name, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 // Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/dhis2-db/helmfile.yaml

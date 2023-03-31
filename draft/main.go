@@ -1,9 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
+	"github.com/dominikbraun/graph"
 	"github.com/teleivo/providers/stack"
 )
 
@@ -15,14 +19,9 @@ func main() {
 }
 
 func run() error {
-	err := deployDHIS2Core()
-	if err != nil {
-		return fmt.Errorf("failed deploying dhis2-core: %v", err)
-	}
-
 	stacks, err := stack.New(
-		stack.DHIS2DB,
 		stack.DHIS2Core,
+		stack.DHIS2DB,
 		stack.PgAdmin,
 		stack.DHIS2,
 		stack.WhoamiGo,
@@ -31,18 +30,173 @@ func run() error {
 		return fmt.Errorf("failed creating IM stacks: %v", err)
 	}
 
-	fmt.Println()
 	err = drawStacks(stacks)
 	if err != nil {
 		return fmt.Errorf("failed drawing IM stack diagram: %v", err)
 	}
 
 	fmt.Println()
-	err = chain()
+	chain, err := pickChain(stacks)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println()
+	err = deploy(chain)
+	if err != nil {
+		return fmt.Errorf("failed deploying chain %v: %v", chain, err)
+	}
+
+	fmt.Println()
+	err = deployDHIS2Core()
+	if err != nil {
+		return fmt.Errorf("failed deploying dhis2-core: %v", err)
+	}
+
+	return nil
+}
+
+func drawStacks(stacks stack.Stacks) error {
+	f, err := os.Create("stacks.d2")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	required := make(map[string]struct{})
+	for src, v := range stacks {
+		for _, dest := range v.Requires {
+			fmt.Fprintf(f, "%s -> %s\n", src, dest.Name)
+			required[dest.Name] = struct{}{}
+		}
+	}
+	for k := range stacks {
+		if _, ok := required[k]; !ok {
+			fmt.Fprintf(f, "%s\n", k)
+		}
+	}
+	fmt.Printf("created https://d2lang.com diagram of IM stacks in %q\n", f.Name())
+
+	return nil
+}
+
+// pickChain is a sketch of chained deployments guiding users in selecting stacks.
+// On every selection we automatically pick the required stacks and topologically sort them.
+func pickChain(stacks stack.Stacks) ([]stack.Stack, error) {
+	g := graph.New(graph.StringHash, graph.Directed(), graph.PreventCycles())
+
+	opts := make([]stack.Stack, 0, len(stacks))
+	for _, s := range stacks {
+		opts = append(opts, s)
+	}
+	sort.Slice(opts, func(i, j int) bool {
+		return opts[i].Name < opts[j].Name
+	})
+	var chainOrder []string
+
+	fmt.Println("Pick a stack chain to deploy")
+	for len(opts) > 0 {
+		fmt.Print("Pick one of ")
+		fmt.Print(renderOptions(opts))
+		fmt.Print(": ")
+
+		n, err := readNumber()
+		if err != nil || n >= len(opts) {
+			fmt.Println("Please choose one of the stacks")
+			continue
+		}
+
+		opt := opts[n]
+		opts = removeByIdx(opts, n)
+		err = g.AddVertex(opt.Name)
+		if err != nil && !errors.Is(err, graph.ErrVertexAlreadyExists) {
+			return nil, fmt.Errorf("failed adding vertex %q: %v", opt.Name, err)
+		}
+		for _, dest := range opt.Requires {
+			opts = removeByName(opts, dest.Name)
+			err := g.AddVertex(dest.Name)
+			if err != nil && !errors.Is(err, graph.ErrVertexAlreadyExists) {
+				return nil, fmt.Errorf("failed adding vertex %q: %v", dest.Name, err)
+			}
+			err = g.AddEdge(dest.Name, opt.Name)
+			if err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
+				return nil, fmt.Errorf("failed adding edge %q -> %q to chain: %v", dest.Name, opt.Name, err)
+			}
+		}
+
+		chainOrder, err = graph.TopologicalSort(g)
+		if err != nil {
+			return nil, fmt.Errorf("failed topological sort stack chain: %v", err)
+		}
+		fmt.Printf("Current stack chain in deployment order: %v\n", chainOrder)
+
+		if len(opts) > 0 {
+			fmt.Print("Enter 0 to deploy stack|any other number to continue picking stacks: ")
+			n, err = readNumber()
+			if err != nil {
+				fmt.Println("Please choose one of the stacks")
+				continue
+			}
+			if n == 0 {
+				break
+			}
+		}
+	}
+
+	chain := make([]stack.Stack, 0, len(chainOrder))
+	for _, s := range chainOrder {
+		chain = append(chain, stacks[s])
+	}
+	return chain, nil
+}
+
+func renderOptions(stacks []stack.Stack) string {
+	var opts strings.Builder
+	for i, s := range stacks {
+		opts.WriteString(fmt.Sprintf("%d) %q", i, s.Name))
+		if i < len(stacks)-1 {
+			opts.WriteString(" ")
+		}
+	}
+	return opts.String()
+}
+
+func readNumber() (int, error) {
+	var choice int
+	_, err := fmt.Scanf("%d", &choice)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse number: %v", err)
+	}
+	return choice, nil
+}
+
+func removeByIdx(stacks []stack.Stack, i int) []stack.Stack {
+	return append(stacks[:i], stacks[i+1:]...)
+}
+
+func removeByName(stacks []stack.Stack, name string) []stack.Stack {
+	for i, s := range stacks {
+		if s.Name == name {
+			return removeByIdx(stacks, i)
+		}
+	}
+
+	return stacks
+}
+
+func deploy(chain []stack.Stack) error {
+	stacks := make([]string, 0, len(chain))
+	for _, s := range chain {
+		stacks = append(stacks, s.Name)
+	}
+	fmt.Printf("deploying stack chain %v\n", stacks)
+
+	// here we would iterate over the chain, deploy each instance which would resolve its parameters
+	// so the subsequent stack instance can consume it
+	// we can stop if a deployment fails and run any destroy hooks which are just functions defined
+	// on the stack. They could have a similar signature as the Provider
+	// Destroy(instance Instance) err error
+	// maybe with a context
 	return nil
 }
 
@@ -108,42 +262,5 @@ func deployDHIS2Core() error {
 
 	fmt.Printf("deploying %q linked to %q(%s) with parameters %#v\n", "dhis-core", source.Name, source.Stack.Name, targetParams)
 
-	return nil
-}
-
-func drawStacks(stacks stack.Stacks) error {
-	f, err := os.Create("stacks.d2")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	required := make(map[string]struct{})
-	for src, v := range stacks {
-		for _, dest := range v.Requires {
-			fmt.Fprintf(f, "%s -> %s\n", src, dest.Name)
-			required[dest.Name] = struct{}{}
-		}
-	}
-	for k := range stacks {
-		if _, ok := required[k]; !ok {
-			fmt.Fprintf(f, "%s\n", k)
-		}
-	}
-	fmt.Printf("created https://d2lang.com diagram of IM stacks in %q\n", f.Name())
-
-	return nil
-}
-
-// TODO analyze that a stack has its consumed parameters provided by its required Stacks
-// making sure that there is only one provider per consumed parameter thus preventing conflicts
-// TODO analyze that our stacks do not have a cycle
-func analyze() error {
-	return nil
-}
-
-// chain is a sketch of chained deployments.
-func chain() error {
-	// TODO create a simple CLI to show how we could guide a user through a chain
 	return nil
 }
