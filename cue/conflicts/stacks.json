@@ -1,0 +1,59 @@
+{
+  "stackName": "dhis2",
+  "optionalParameters": [
+    {
+      "name": "STARTUP_PROBE_FAILURE_THRESHOLD",
+      "value": "26"
+    },
+    {
+      "name": "STARTUP_PROBE_PERIOD_SECONDS",
+      "value": "5"
+    },
+    {
+      "name": "LIVENESS_PROBE_TIMEOUT_SECONDS",
+      "value": "1"
+    },
+    {
+      "name": "READINESS_PROBE_TIMEOUT_SECONDS",
+      "value": "1"
+    },
+    {
+      "name": "IMAGE_REPOSITORY",
+      "value": "core"
+    },
+    {
+      "name": "IMAGE_TAG",
+      "value": "2.39.0"
+    },
+    {
+      "name": "IMAGE_PULL_POLICY",
+      "value": "IfNotPresent"
+    },
+    {
+      "name": "DATABASE_SIZE",
+      "value": "30Gi"
+    },
+    {
+      "name": "INSTALL_REDIS",
+      "value": "false"
+    },
+    {
+       "name": "INSTANCE_TTL",
+       "value": ""
+    },
+    {
+       "name": "FLYWAY_MIGRATE_OUT_OF_ORDER",
+       "value": "false"
+    },
+    {
+       "name": "FLYWAY_REPAIR_BEFORE_MIGRATION",
+       "value": "false"
+    }
+  ],
+  "requiredParameters": [
+    {
+      "name": "DATABASE_ID",
+      "value": "1"
+    }
+  ]
+}
