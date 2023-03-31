@@ -104,7 +104,47 @@ var DHIS2 = Stack{
 	},
 }
 
+// Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/pgadmin/helmfile.yaml
+// Note: parameters are incomplete and might differ.
+var PgAmdin = Stack{
+	Name: "pgadmin",
+	Parameters: map[string]Parameter{
+		"PGADMIN_USERNAME": {},
+		"PGADMIN_PASSWORD": {},
+		"DATABASE_USERNAME": {
+			Consumed: true,
+		},
+		"DATABASE_PASSWORD": {
+			Consumed: true,
+		},
+		"DATABASE_NAME": {
+			Consumed: true,
+		},
+		"DATABASE_HOSTNAME": {
+			Consumed: true,
+		},
+	},
+	Requires: []Stack{
+		DHIS2DB,
+	},
+}
+
+// Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/whoami-go/helmfile.yaml
+// Note: parameters are incomplete and might differ.
+var WhoamiGo = Stack{
+	Name: "whoami-go",
+	Parameters: map[string]Parameter{
+		"REPLICA_COUNT": {
+			Value: "1",
+		},
+	},
+}
+
 // Provides the PostgreSQL hostname as previously done by the hostname pattern.
+// Leveraging code as data and the Provider interface we can create reusable providers using any
+// data an instance or its stack has. A Provider could in theory also reach out over the network to
+// fetch some information. In this case I would suggest we add https://pkg.go.dev/context to the
+// signature to enable timeing out.
 var postgresHostNameProvider = ProviderFunc(func(instance Instance) (string, error) {
 	return fmt.Sprintf("%s-database-postgresql.%s.svc", instance.Name, instance.Group), nil
 })
