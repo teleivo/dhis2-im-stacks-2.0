@@ -48,16 +48,20 @@ func deploy() error {
 	}
 
 	// resolve parameters using source instance and target stack
-	dhis2CoreInstanceParams := make(map[string]string, len(stack.DHIS2CoreStack.Parameters))
+	targetParams := make(map[string]stack.Parameter, len(stack.DHIS2CoreStack.Parameters))
 	for k, p := range stack.DHIS2CoreStack.Parameters {
 		if !p.Consumed {
-			dhis2CoreInstanceParams[k] = p.Value
+			targetParams[k] = stack.Parameter{
+				Value: p.Value,
+			}
 			continue
 		}
 
 		// find parameter on the source instance parameters first
 		if param, ok := source.Parameters[k]; ok {
-			dhis2CoreInstanceParams[k] = param.Value
+			targetParams[k] = stack.Parameter{
+				Value: param.Value,
+			}
 			continue
 		}
 
@@ -71,10 +75,12 @@ func deploy() error {
 		if err != nil {
 			return fmt.Errorf("failed to evaluate parameter %q using source stack %q", k, source.Stack.Name)
 		}
-		dhis2CoreInstanceParams[k] = v
+		targetParams[k] = stack.Parameter{
+			Value: v,
+		}
 	}
 
-	fmt.Printf("deploying %q linked to %q(%s) with parameters %v\n", "dhis-core", source.Name, source.Stack.Name, dhis2CoreInstanceParams)
+	fmt.Printf("deploying %q linked to %q(%s) with parameters %#v\n", "dhis-core", source.Name, source.Stack.Name, targetParams)
 
 	return nil
 }
