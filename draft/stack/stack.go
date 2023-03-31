@@ -40,21 +40,18 @@ type Instance struct {
 	Parameters map[string]Parameter
 }
 
-// TODO is this helpful?
-var stacks = map[string]Stack{}
-
 // Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/dhis2-db/helmfile.yaml
 // Note: parameters are incomplete and might differ.
-var DHIS2DBStack = Stack{
+var DHIS2DB = Stack{
 	Name: "dhis2-db",
 	Parameters: map[string]Parameter{
 		"DATABASE_ID":       {},
 		"DATABASE_USERNAME": {},
+		"DATABASE_PASSWORD": {},
+		"DATABASE_NAME":     {},
 	},
 	Providers: map[string]Provider{
-		"DATABASE_HOSTNAME": ProviderFunc(func(instance Instance) (string, error) {
-			return fmt.Sprintf("%s-database-postgresql.%s.svc", instance.Name, instance.Group), nil
-		}),
+		"DATABASE_HOSTNAME": postgresHostNameProvider,
 		"DATABASE_GREETING": ProviderFunc(func(instance Instance) (string, error) {
 			return fmt.Sprintf("hello from stack %q instance %q", instance.Stack.Name, instance.Name), nil
 		}),
@@ -63,7 +60,7 @@ var DHIS2DBStack = Stack{
 
 // Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/dhis2-core/helmfile.yaml
 // Note: parameters are incomplete and might differ.
-var DHIS2CoreStack = Stack{
+var DHIS2Core = Stack{
 	Name: "dhis2-core",
 	Parameters: map[string]Parameter{
 		"DHIS2_HOME": {
@@ -72,14 +69,42 @@ var DHIS2CoreStack = Stack{
 		"DATABASE_USERNAME": {
 			Consumed: true,
 		},
+		"DATABASE_PASSWORD": {
+			Consumed: true,
+		},
+		"DATABASE_NAME": {
+			Consumed: true,
+		},
 		"DATABASE_HOSTNAME": {
 			Consumed: true,
 		},
-		"DATABASE_GREETING": {
+		"DATABASE_GREETING": { // just an example to show multiple "hostname variables" are possible
 			Consumed: true,
 		},
 	},
 	Requires: []Stack{
-		DHIS2DBStack,
+		DHIS2DB,
 	},
 }
+
+// Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/dhis2/helmfile.yaml
+// Note: parameters are incomplete and might differ.
+var DHIS2 = Stack{
+	Name: "dhis2-core",
+	Parameters: map[string]Parameter{
+		"DHIS2_HOME": {
+			Value: "/opt/dhis2",
+		},
+		"DATABASE_USERNAME": {},
+		"DATABASE_PASSWORD": {},
+		"DATABASE_NAME":     {},
+	},
+	Providers: map[string]Provider{
+		"DATABASE_HOSTNAME": postgresHostNameProvider,
+	},
+}
+
+// Provides the PostgreSQL hostname as previously done by the hostname pattern.
+var postgresHostNameProvider = ProviderFunc(func(instance Instance) (string, error) {
+	return fmt.Sprintf("%s-database-postgresql.%s.svc", instance.Name, instance.Group), nil
+})

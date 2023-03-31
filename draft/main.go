@@ -36,7 +36,7 @@ func deploy() error {
 	source := stack.Instance{
 		Name:  "mydb",
 		Group: "whoami",
-		Stack: stack.DHIS2DBStack,
+		Stack: stack.DHIS2DB,
 		Parameters: map[string]stack.Parameter{
 			"DATABASE_ID": {
 				Value: "1",
@@ -44,12 +44,18 @@ func deploy() error {
 			"DATABASE_USERNAME": {
 				Value: "foo",
 			},
+			"DATABASE_PASSWORD": {
+				Value: "faa",
+			},
+			"DATABASE_NAME": {
+				Value: "mono",
+			},
 		},
 	}
 
 	// resolve parameters using source instance and target stack
-	targetParams := make(map[string]stack.Parameter, len(stack.DHIS2CoreStack.Parameters))
-	for k, p := range stack.DHIS2CoreStack.Parameters {
+	targetParams := make(map[string]stack.Parameter, len(stack.DHIS2Core.Parameters))
+	for k, p := range stack.DHIS2Core.Parameters {
 		if !p.Consumed {
 			targetParams[k] = stack.Parameter{
 				Value: p.Value,
@@ -60,7 +66,8 @@ func deploy() error {
 		// find parameter on the source instance parameters first
 		if param, ok := source.Parameters[k]; ok {
 			targetParams[k] = stack.Parameter{
-				Value: param.Value,
+				Value:    param.Value,
+				Consumed: true,
 			}
 			continue
 		}
@@ -76,7 +83,8 @@ func deploy() error {
 			return fmt.Errorf("failed to evaluate parameter %q using source stack %q", k, source.Stack.Name)
 		}
 		targetParams[k] = stack.Parameter{
-			Value: v,
+			Value:    v,
+			Consumed: true,
 		}
 	}
 
