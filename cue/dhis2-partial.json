@@ -1,0 +1,8 @@
+{
+    "parameters": {
+        "GOOGLE_AUTH_PROJECT_ID": {
+            "value": "10"
+        }
+    }
+}
+
