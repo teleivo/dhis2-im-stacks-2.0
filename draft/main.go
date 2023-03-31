@@ -93,6 +93,12 @@ func deploy() error {
 	return nil
 }
 
+// TODO analyze stacks. create a DAG, ensure there are no cycles, print diagram
+// return initialized stacks?
+func stacks() error {
+	return nil
+}
+
 // chain is a sketch of chained deployments.
 func chain() error {
 	// TODO create more stacks with some interesting requires

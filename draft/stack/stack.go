@@ -1,6 +1,11 @@
+// Package stack is a rough example of how we could structure stacks. Its important that we prevent
+// any conflicts in instance parameters as such an instance cannot be deployed. It is important that
+// we prevent any cycles in for example chained deployments as such chains cannot be deployed.
 package stack
 
 import "fmt"
+
+type Stacks map[string]Stack
 
 type Stack struct {
 	Name string
@@ -38,6 +43,13 @@ type Instance struct {
 	Group      string
 	Stack      Stack
 	Parameters map[string]Parameter
+}
+
+var IMStacks = Stacks{
+	"dhis2-db":   DHIS2DB,
+	"dhis2-core": DHIS2Core,
+	"pgadmin":    PgAdmin,
+	"whoami-go":  WhoamiGo,
 }
 
 // Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/dhis2-db/helmfile.yaml
@@ -106,7 +118,7 @@ var DHIS2 = Stack{
 
 // Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/pgadmin/helmfile.yaml
 // Note: parameters are incomplete and might differ.
-var PgAmdin = Stack{
+var PgAdmin = Stack{
 	Name: "pgadmin",
 	Parameters: map[string]Parameter{
 		"PGADMIN_USERNAME": {},
