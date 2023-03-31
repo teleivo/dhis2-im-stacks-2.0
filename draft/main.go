@@ -47,7 +47,7 @@ func deploy() error {
 		},
 	}
 
-	// resolve parameters using target stack and source instance
+	// resolve parameters using source instance and target stack
 	dhis2CoreInstanceParams := make(map[string]string, len(stack.DHIS2CoreStack.Parameters))
 	for k, p := range stack.DHIS2CoreStack.Parameters {
 		if !p.Consumed {
@@ -74,7 +74,7 @@ func deploy() error {
 		dhis2CoreInstanceParams[k] = v
 	}
 
-	fmt.Println(dhis2CoreInstanceParams)
+	fmt.Printf("deploying %q linked to %q(%s) with parameters %v\n", "dhis-core", source.Name, source.Stack.Name, dhis2CoreInstanceParams)
 
 	return nil
 }
