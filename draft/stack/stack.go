@@ -3,7 +3,10 @@
 // we prevent any cycles in for example chained deployments as such chains cannot be deployed.
 package stack
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Stacks map[string]Stack
 
@@ -45,11 +48,60 @@ type Instance struct {
 	Parameters map[string]Parameter
 }
 
-var IMStacks = Stacks{
-	"dhis2-db":   DHIS2DB,
-	"dhis2-core": DHIS2Core,
-	"pgadmin":    PgAdmin,
-	"whoami-go":  WhoamiGo,
+// New creates stacks ensuring consumed parameters are provided by required stacks.
+func New(stacks ...Stack) (Stacks, error) {
+	err := validateConsumedParams(stacks)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(Stacks, len(stacks))
+	for _, s := range stacks {
+		result[s.Name] = s
+	}
+	return result, nil
+}
+
+func validateConsumedParams(stacks []Stack) error {
+	var errs []error
+	for _, s := range stacks { // validate each stacks consumed parameters are provided by its required stacks
+		// collect all consumed parameters
+		freq := make(map[string]int)
+		for k, p := range s.Parameters {
+			if !p.Consumed {
+				continue
+			}
+			freq[k] = 0
+		}
+
+		// generate frequency map of provided parameters
+		for _, dest := range s.Requires {
+			// TODO does it matter if a consumed parameter is itself a consumed parameter on the required stack?
+			// as long as we have no cycles its not a problem.
+			for n := range dest.Parameters {
+				_, ok := freq[n]
+				if ok {
+					freq[n]++
+				}
+			}
+			for n := range dest.Providers {
+				_, ok := freq[n]
+				if ok {
+					freq[n]++
+				}
+			}
+		}
+		for p, cnt := range freq {
+			if cnt == 0 {
+				errs = append(errs, fmt.Errorf("no provider for stack %q parameter %q", s.Name, p))
+			}
+			if cnt > 1 {
+				errs = append(errs, fmt.Errorf("every consumed parameter must have exactly one provider. %d provider(s) for stack %q parameter %q", cnt, s.Name, p))
+			}
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 // Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/dhis2-db/helmfile.yaml
@@ -102,7 +154,7 @@ var DHIS2Core = Stack{
 // Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/dhis2/helmfile.yaml
 // Note: parameters are incomplete and might differ.
 var DHIS2 = Stack{
-	Name: "dhis2-core",
+	Name: "dhis2",
 	Parameters: map[string]Parameter{
 		"DHIS2_HOME": {
 			Value: "/opt/dhis2",
@@ -159,7 +211,7 @@ var WhoamiGo = Stack{
 // Leveraging code as data and the Provider interface we can create reusable providers using any
 // data an instance or its stack has. A Provider could in theory also reach out over the network to
 // fetch some information. In this case I would suggest we add https://pkg.go.dev/context to the
-// signature to enable timeing out.
+// signature to enable timing out.
 var postgresHostNameProvider = ProviderFunc(func(instance Instance) (string, error) {
 	return fmt.Sprintf("%s-database-postgresql.%s.svc", instance.Name, instance.Group), nil
 })

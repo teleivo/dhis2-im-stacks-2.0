@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/teleivo/providers/stack"
@@ -18,23 +17,27 @@ func main() {
 func run() error {
 	err := deploy()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed deploying dhis2-core: %v", err)
 	}
 
-	f, err := os.Create("stacks.d2")
+	stacks, err := stack.New(
+		stack.DHIS2DB,
+		stack.DHIS2Core,
+		stack.PgAdmin,
+		stack.DHIS2,
+		stack.WhoamiGo,
+	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed creating IM stacks: %v", err)
 	}
-	defer f.Close()
 
-	err = drawStacks(f)
+	fmt.Println()
+	err = drawStacks(stacks)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed drawing IM stack diagram: %v", err)
 	}
-	fmt.Printf("created https://d2lang.com diagram of IM stacks in %q\n", f.Name())
 
-	// TODO analyze drawStacks. create a DAG, ensure there are no cycles
-
+	fmt.Println()
 	err = chain()
 	if err != nil {
 		return err
@@ -108,29 +111,39 @@ func deploy() error {
 	return nil
 }
 
-func drawStacks(out io.Writer) error {
+func drawStacks(stacks stack.Stacks) error {
+	f, err := os.Create("stacks.d2")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
 	required := make(map[string]struct{})
-	for src, v := range stack.IMStacks {
+	for src, v := range stacks {
 		for _, dest := range v.Requires {
-			fmt.Fprintf(out, "%s -> %s\n", src, dest.Name)
+			fmt.Fprintf(f, "%s -> %s\n", src, dest.Name)
 			required[dest.Name] = struct{}{}
 		}
 	}
-	for k := range stack.IMStacks {
+	for k := range stacks {
 		if _, ok := required[k]; !ok {
-			fmt.Fprintf(out, "%s\n", k)
+			fmt.Fprintf(f, "%s\n", k)
 		}
 	}
+	fmt.Printf("created https://d2lang.com diagram of IM stacks in %q\n", f.Name())
 
+	return nil
+}
+
+// TODO analyze that a stack has its consumed parameters provided by its required Stacks
+// making sure that there is only one provider per consumed parameter thus preventing conflicts
+// TODO analyze that our stacks do not have a cycle
+func analyze() error {
 	return nil
 }
 
 // chain is a sketch of chained deployments.
 func chain() error {
-	// TODO create more stacks with some interesting requires
-	// TODO create a d2 graph from the data :)
-	// TODO can I create a CLI that allows me to show how we resolve a user selecting dhis2-core or
-	// so?
-	// TODO should
+	// TODO create a simple CLI to show how we could guide a user through a chain
 	return nil
 }
