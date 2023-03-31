@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/teleivo/providers/stack"
@@ -19,6 +20,20 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	f, err := os.Create("stacks.d2")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	err = drawStacks(f)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("created https://d2lang.com diagram of IM stacks in %q\n", f.Name())
+
+	// TODO analyze drawStacks. create a DAG, ensure there are no cycles
 
 	err = chain()
 	if err != nil {
@@ -93,9 +108,20 @@ func deploy() error {
 	return nil
 }
 
-// TODO analyze stacks. create a DAG, ensure there are no cycles, print diagram
-// return initialized stacks?
-func stacks() error {
+func drawStacks(out io.Writer) error {
+	required := make(map[string]struct{})
+	for src, v := range stack.IMStacks {
+		for _, dest := range v.Requires {
+			fmt.Fprintf(out, "%s -> %s\n", src, dest.Name)
+			required[dest.Name] = struct{}{}
+		}
+	}
+	for k := range stack.IMStacks {
+		if _, ok := required[k]; !ok {
+			fmt.Fprintf(out, "%s\n", k)
+		}
+	}
+
 	return nil
 }
 
