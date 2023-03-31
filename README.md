@@ -5,8 +5,8 @@ https://github.com/dhis2-sre/im-manager Stacks 2.0.
 
 Directory
 
-* cue - is a playground investigating https://cuelang.org
 * draft - is a playground investigating a path without using cue
+* cue - is a playground investigating https://cuelang.org
 
 ## Draft
 
@@ -28,4 +28,8 @@ You can adapt the code, watch it change when rerunning the code creating the dia
 ```sh
 d2 --watch stacks.d2
 ```
+
+## CUE
+
+I looked into https://cuelang.org/ a tiny bit. See [./cue/CUE.md](CUE).
 
