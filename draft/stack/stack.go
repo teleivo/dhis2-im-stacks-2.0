@@ -111,7 +111,6 @@ func validateConsumedParams(stacks []Stack) error {
 	return errors.Join(errs...)
 }
 
-// TODO test
 func validateNoCycles(stacks []Stack) error {
 	g := graph.New(graph.StringHash, graph.Directed(), graph.PreventCycles())
 	for _, s := range stacks {
@@ -124,6 +123,9 @@ func validateNoCycles(stacks []Stack) error {
 		for _, dest := range src.Requires {
 			err := g.AddEdge(dest.Name, src.Name)
 			if err != nil {
+				if errors.Is(err, graph.ErrEdgeCreatesCycle) {
+					return fmt.Errorf("edge %q -> %q creates cycle", dest.Name, src.Name)
+				}
 				return fmt.Errorf("failed adding edge %q -> %q: %v", dest.Name, src.Name, err)
 			}
 		}
@@ -232,7 +234,7 @@ var WhoamiGo = Stack{
 	},
 }
 
-// TODO are we using stack im-job-runner
+// im-job-runner: does not have any interesting consumed parameters right now
 // https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/im-job-runner/helmfile.yaml
 
 // Provides the PostgreSQL hostname as previously done by the hostname pattern.

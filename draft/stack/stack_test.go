@@ -164,4 +164,31 @@ func TestNew(t *testing.T) {
 			t.Fatalf("want error to contain '%s', instead got '%s'", want, err.Error())
 		}
 	})
+
+	t.Run("FailGivenStackWithCycle", func(t *testing.T) {
+		a := stack.Stack{
+			Name: "a",
+			Parameters: map[string]stack.Parameter{
+				"a_param": {},
+			},
+		}
+		b := stack.Stack{
+			Name: "b",
+			Parameters: map[string]stack.Parameter{
+				"a_param": {
+					Consumed: true,
+				},
+			},
+			Requires: []stack.Stack{a},
+		}
+		a.Requires = []stack.Stack{b}
+
+		_, err := stack.New(a, b)
+		if err == nil {
+			t.Fatalf("expected error got none")
+		}
+		if want := `edge "a" -> "b" creates cycle`; !strings.Contains(err.Error(), want) {
+			t.Fatalf("want error to contain '%s', instead got '%s'", want, err.Error())
+		}
+	})
 }
