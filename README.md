@@ -10,11 +10,13 @@ Directory
 
 ## Draft
 
-Browse the code in [draft](./draft). Run some dummy examples and analysis on our stacks using
+Browse the code in [draft](./draft). Pick a stack chain and run a dummy deployment using
 
 ```sh
 go run main.go
 ```
+
+The dummy deployment shows how parameters can be consumed from a required stack (linked or chain).
 
 The types for stacks and parameters are in in [stack.go](./draft/stack/stack.go).
 [main.go](./draft/main.go) shows you some dummy scenarios or uses.
