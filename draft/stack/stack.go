@@ -50,6 +50,14 @@ type Instance struct {
 	Parameters map[string]Parameter
 }
 
+// Chain of stacks to be deployed in order.
+type Chain struct {
+	stacks  []Stack
+	visited map[string]struct{}
+	idx     map[string]int
+	Chain   []Stack
+}
+
 // New creates stacks ensuring consumed parameters are provided by required stacks.
 func New(stacks ...Stack) (Stacks, error) {
 	err := validateConsumedParams(stacks)
@@ -132,6 +140,45 @@ func validateNoCycles(stacks []Stack) error {
 	}
 
 	return nil
+}
+
+// NewChain creates a stack chain of the given stacks. All stacks and their required stacks will be
+// added to the chain in topological order. Any duplicate stacks will be ignored. Returns an error
+// if given stacks contain a cycle.
+// TODO some validation of stacks: cycles
+func NewChain(stacks ...Stack) (*Chain, error) {
+	c := Chain{
+		visited: make(map[string]struct{}, len(stacks)),
+		stacks:  stacks,
+		Chain:   make([]Stack, 0, len(stacks)),
+	}
+
+	for _, s := range stacks {
+		if _, ok := c.visited[s.Name]; !ok {
+			c.dfs(s)
+		}
+	}
+
+	return &c, nil
+}
+
+// Collect stacks in depth-first search order. We collect stacks that have no required stack i.e.
+// vertices with no outgoing edges. This way required stacks will already be deployed before the
+// stacks depending on them.
+func (c *Chain) dfs(stack Stack) {
+	c.visited[stack.Name] = struct{}{}
+	for _, s := range stack.Requires {
+		if _, ok := c.visited[s.Name]; !ok {
+			c.dfs(s)
+		}
+	}
+	c.Chain = append(c.Chain, stack)
+}
+
+// Add stack to the chain. Stack will be ignored if its already part of the chain. The chain is
+// kept in topological order. Returns an error if adding the stack would cause a cycle.
+func (c *Chain) Add(stack Stack) (*Chain, error) {
+	return c, nil
 }
 
 // Stack representing https://github.com/dhis2-sre/im-manager/blob/df95b498828ec7e2bb85245bf0e6a051f14f61fd/stacks/dhis2-db/helmfile.yaml

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/teleivo/providers/stack"
 )
 
@@ -189,6 +190,25 @@ func TestNew(t *testing.T) {
 		}
 		if want := `edge "a" -> "b" creates cycle`; !strings.Contains(err.Error(), want) {
 			t.Fatalf("want error to contain '%s', instead got '%s'", want, err.Error())
+		}
+	})
+}
+
+func TestNewChain(t *testing.T) {
+	// TODO turn into table driven test with more elaborate examples
+	t.Run("Success", func(t *testing.T) {
+		a := stack.Stack{Name: "a"}
+		b := stack.Stack{Name: "b", Requires: []stack.Stack{a}}
+
+		c, err := stack.NewChain(b)
+		if err != nil {
+			t.Fatalf("unexpected error %v", err)
+		}
+
+		want := []stack.Stack{a, b}
+
+		if diff := cmp.Diff(want, c.Chain); diff != "" {
+			t.Errorf("NewChain() mismatch (-want +got):\n%s", diff)
 		}
 	})
 }
